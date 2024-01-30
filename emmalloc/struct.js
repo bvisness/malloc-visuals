@@ -1,10 +1,11 @@
 class StructDef {
-    constructor(size, fields) {
+    constructor(size, fields, klass) {
         this.size = size;
         this.fields = fields;
+        this.klass = klass;
     }
 
-    static newFromC(name, fieldNames) {
+    static newFromC(name, fieldNames, klass) {
         return new StructDef(
             Module.ccall(`sizeof_${name}`),
             fieldNames.map(fieldName => ({
@@ -12,6 +13,7 @@ class StructDef {
                 size: Module.ccall(`sizeof_${name}_${fieldName}`),
                 offset: Module.ccall(`offsetof_${name}_${fieldName}`),
             })),
+            klass,
         );
     }
 
@@ -20,7 +22,8 @@ class StructDef {
      * @param {number} addr
      */
     load(mem, addr) {
-        const res = { __addr: addr };
+        const res = this.klass ? new this.klass() : {};
+        res.__addr = addr;
         for (const field of this.fields) {
             // Little endian is assumed
             let num = 0;

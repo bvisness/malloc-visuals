@@ -10,9 +10,11 @@
 EMSCRIPTEN_KEEPALIVE size_t _MALLOC_ALIGNMENT() { return MALLOC_ALIGNMENT; }
 EMSCRIPTEN_KEEPALIVE size_t _sizeof_ptr() { return sizeof(size_t); }
 
-EMSCRIPTEN_KEEPALIVE void *pListOfAllRegions() { return &listOfAllRegions; }
-EMSCRIPTEN_KEEPALIVE void *pFreeRegionBuckets() { return &freeRegionBuckets; }
-EMSCRIPTEN_KEEPALIVE void *pFreeRegionBucketsUsed() {
+EMSCRIPTEN_KEEPALIVE RootRegion **pListOfAllRegions() {
+  return &listOfAllRegions;
+}
+EMSCRIPTEN_KEEPALIVE Region *pFreeRegionBuckets() { return freeRegionBuckets; }
+EMSCRIPTEN_KEEPALIVE BUCKET_BITMASK_T *pFreeRegionBucketsUsed() {
   return &freeRegionBucketsUsed;
 }
 
