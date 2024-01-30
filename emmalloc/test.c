@@ -7,6 +7,9 @@
 #define EMSCRIPTEN_KEEPALIVE
 #endif
 
+EMSCRIPTEN_KEEPALIVE size_t _MALLOC_ALIGNMENT() { return MALLOC_ALIGNMENT; }
+EMSCRIPTEN_KEEPALIVE size_t _sizeof_ptr() { return sizeof(size_t); }
+
 EMSCRIPTEN_KEEPALIVE void *pListOfAllRegions() { return &listOfAllRegions; }
 EMSCRIPTEN_KEEPALIVE void *pFreeRegionBuckets() { return &freeRegionBuckets; }
 EMSCRIPTEN_KEEPALIVE void *pFreeRegionBucketsUsed() {
