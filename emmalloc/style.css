@@ -1,0 +1,16 @@
+.region {
+  display: flex;
+  border-width: 1px;
+  border-style: solid;
+  margin-top: 2rem;
+}
+
+.region:not(:first-child) {
+  /* margin-left: 1px; */
+}
+
+.field:not(:first-child) {
+  border-left-style: solid;
+  border-left-width: 1px;
+  border-left-color: hsla(0,0%,100%,.6);
+}

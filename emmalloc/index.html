@@ -3,8 +3,13 @@
 <head>
     <title>emmalloc demo</title>
 
-    <link rel="stylesheet" href="fxfonts.css">
+    <script src="dom.js"></script>
+    <script src="emmalloc.js"></script>
+    <script src="struct.js"></script>
 
+    <link rel="stylesheet" href="tachyons.min.css">
+    <link rel="stylesheet" href="fxfonts.css">
+    <link rel="stylesheet" href="style.css">
     <style>
         body {
             font-family: Inter, sans-serif;
@@ -48,11 +53,14 @@
     </style>
 </head>
 
-<body>
+<body class="ma3">
     <h1>emmalloc demo</h1>
     <p>It is a pretty cool demo imo.</p>
 
-    <script src="emmalloc.js"></script>
-    <script src="struct.js"></script>
+    <div>
+        <h4>Slabs</h4>
+        <div id="slabs"></div>
+    </div>
+
     <script src="index.js"></script>
 </body>

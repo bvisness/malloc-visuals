@@ -47,6 +47,23 @@ class StructDef {
         }
         return res;
     }
+
+    field(name) {
+        for (const f of this.fields) {
+            if (f.name === name) {
+                return f;
+            }
+        }
+        throw new Error(`can't get unknown field ${name}`);
+    }
+
+    sizeof(fieldName) {
+        return this.field(fieldName).size;
+    }
+
+    offsetof(fieldName) {
+        return this.field(fieldName).offset;
+    }
 }
 
 function load(mem, addr, size) {

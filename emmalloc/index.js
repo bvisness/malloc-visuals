@@ -1,3 +1,7 @@
+const BYTE_WIDTH_REM = 1.25;
+const MAX_WIDTH_REM = 20;
+const slabs = document.querySelector("#slabs");
+
 // All the constants and functions below are defined in `init`.
 addOnPostRun(init);
 
@@ -130,6 +134,8 @@ function init() {
 }
 
 function draw() {
+    slabs.innerHTML = "";
+
     console.group("root regions");
     {
         const ppRoot = pListOfAllRegions();
@@ -139,14 +145,41 @@ function draw() {
             const root = RootRegion.load(HEAPU8, pRoot);
             console.group(`Slab ${i}`);
             {
+                const slab = E("div", ["slab", "flex", "flex-wrap"]);
+                slabs.appendChild(slab);
+
                 console.log("RootRegion", root);
-                
+                const rootDiv = E("div", ["region", "root"], [
+                    // TODO: tooltip to indicate that size is unused
+                    // (and probably dim it)
+                    Field("size", root.size, RootRegion.sizeof("size")),
+                    Field("next", root.next, RootRegion.sizeof("next")),
+                    Field("endPtr", root.endPtr, RootRegion.sizeof("endPtr")),
+                ]);
+                slab.appendChild(rootDiv);
+
                 // why we add sizeof(Region) is not entirely clear to me...but
                 // sizeof(RootRegion) < sizeof(Region) so whatever
                 let regionAddr = root.__addr + Region.size;
                 while (regionAddr !== root.endPtr) {
                     const region = Region.load(HEAPU8, regionAddr);
                     console.log(`Region (${region.used ? "used" : "free"})`, region);
+
+                    const regionDiv = E("div", ["region"], [
+                        Field("size", region.size, Region.sizeof("size")),
+                    ]);
+                    if (region.used) {
+                        const payloadBytes = region.size - 2 * SIZEOF_PTR;
+                        const payload = E("div", ["pa1", "f6", "bl", "flex", "flex-column", "justify-center", "tc"], [
+                            E("span", ["code"], "payload"),
+                            E("span", ["f7", "white-60", "mt1"], `${hex(payloadBytes)} bytes`),
+                        ]);
+                        payload.style.width = width(payloadBytes);
+                        regionDiv.appendChild(payload);
+                    }
+                    regionDiv.appendChild(Field("size", region.size, Region.sizeof("_at_the_end_of_this_struct_size")));
+                    slab.appendChild(regionDiv);
+
                     regionAddr += region.size;
                 }
             }
@@ -176,4 +209,23 @@ function draw() {
         }
     }
     console.groupEnd();
+}
+
+function Field(name, value, size) {
+    const e = E("div", ["field", "flex", "flex-column", "tc"], [
+        E("div", ["flex-grow-1", "pa1", "flex", "flex-column", "justify-center", "code", "f6"], [
+            hex(value),
+        ]),
+        E("div", ["bt", "b--white-60", "white-60", "pa1", "f7"], name),
+    ]);
+    e.style.width = width(size);
+    return e;
+}
+
+function hex(n) {
+    return `0x${n.toString(16)}`;
+}
+
+function width(bytes) {
+    return `${Math.min(bytes * BYTE_WIDTH_REM, MAX_WIDTH_REM)}rem`;
 }
