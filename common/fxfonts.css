@@ -1,0 +1,69 @@
+@font-face {
+  font-family: Metropolis;
+  font-style: normal;
+  font-weight: 500;
+  src: url("Metropolis-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Metropolis;
+  font-style: italic;
+  font-weight: 500;
+  src: url("Metropolis-MediumItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Metropolis;
+  font-style: normal;
+  font-weight: 700;
+  src: url("Metropolis-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Metropolis;
+  font-style: italic;
+  font-weight: 700;
+  src: url("Metropolis-BoldItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400;
+  src: url("Inter-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: italic;
+  font-weight: 400;
+  src: url("Inter-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 600;
+  src: url("Inter-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: italic;
+  font-weight: 600;
+  src: url("Inter-SemiBoldItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 700;
+  src: url("Inter-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: italic;
+  font-weight: 700;
+  src: url("Inter-BoldItalic.woff2") format("woff2");
+}
