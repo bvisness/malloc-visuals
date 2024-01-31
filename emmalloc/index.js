@@ -124,12 +124,6 @@ function init() {
         "endPtr",
     ]);
 
-    malloc(3);
-    const f = malloc(3);
-    malloc(3);
-    malloc(64);
-    free(f);
-
     draw();
 }
 
@@ -150,11 +144,19 @@ function draw() {
 
                 console.log("RootRegion", root);
                 const rootDiv = E("div", ["region", "root"], [
-                    // TODO: tooltip to indicate that size is unused
-                    // (and probably dim it)
-                    Field("size", root.size, RootRegion.sizeof("size")),
-                    Field("next", root.next, RootRegion.sizeof("next")),
-                    Field("endPtr", root.endPtr, RootRegion.sizeof("endPtr")),
+                    E("div", ["code", "f7", "white-60", "flex", "flex-column", "justify-end", "pl1", "pb1"], [
+                        hex(root.__addr),
+                    ]),
+                    E("div", ["region-fields"], [
+                        // TODO: tooltip to indicate that size is unused
+                        // (and probably dim it)
+                        Field("size", root.size, RootRegion.sizeof("size")),
+                        Field("next", root.next, RootRegion.sizeof("next")),
+                        Field("endPtr", root.endPtr, RootRegion.sizeof("endPtr")),
+                    ]),
+                    E("div", ["ph1", "tc", "flex-grow-1"], [
+                        E("span", ["f7"], "RootRegion"),
+                    ]),
                 ]);
                 slab.appendChild(rootDiv);
 
@@ -165,7 +167,13 @@ function draw() {
                     const region = Region.load(HEAPU8, regionAddr);
                     console.log(`Region (${region.used ? "used" : "free"})`, region);
 
+                    // TODO: render "breaks" in the payload/padding if wider than the max allowed
                     const regionDiv = E("div", ["region"], [
+                        E("div", ["code", "f7", "white-60", "flex", "flex-column", "justify-end", "pl1", "pb1"], [
+                            hex(region.__addr),
+                        ]),
+                    ]);
+                    const regionFields = E("div", ["region-fields"], [
                         Field("size", region.size, Region.sizeof("size")),
                     ]);
                     if (region.used) {
@@ -175,11 +183,26 @@ function draw() {
                             E("span", ["f7", "white-60", "mt1"], `${hex(payloadBytes)} bytes`),
                         ]);
                         payload.style.width = width(payloadBytes);
-                        regionDiv.appendChild(payload);
-                    }
-                    regionDiv.appendChild(Field("size", region.size, Region.sizeof("_at_the_end_of_this_struct_size")));
-                    slab.appendChild(regionDiv);
+                        regionFields.appendChild(payload);
+                    } else {
+                        regionFields.appendChild(Field("prev", region.prev, Region.sizeof("prev")));
+                        regionFields.appendChild(Field("next", region.next, Region.sizeof("next")));
 
+                        const paddingBytes = region.size - Region.size;
+                        if (paddingBytes) {
+                            const padding = E("div", ["bl", "b--white-60"]);
+                            padding.style.width = width(paddingBytes);
+                            regionFields.appendChild(padding);
+                        }
+                    }
+                    regionFields.appendChild(Field("size | free", region.ceilingSize, Region.sizeof("_at_the_end_of_this_struct_size")));
+                    regionDiv.appendChild(regionFields);
+
+                    regionDiv.appendChild(E("div", ["ph1", "tc", "flex-grow-1"], [
+                        E("span", ["f7"], `Region (${region.used ? "used" : "free"})`),
+                    ]));
+
+                    slab.appendChild(regionDiv);
                     regionAddr += region.size;
                 }
             }
@@ -228,4 +251,14 @@ function hex(n) {
 
 function width(bytes) {
     return `${Math.min(bytes * BYTE_WIDTH_REM, MAX_WIDTH_REM)}rem`;
+}
+
+function test() {
+    malloc(3);
+    const f = malloc(3);
+    malloc(3);
+    malloc(64);
+    free(f);
+
+    draw();
 }

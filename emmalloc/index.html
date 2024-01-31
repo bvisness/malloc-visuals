@@ -55,10 +55,15 @@
 
 <body class="ma3">
     <h1>emmalloc demo</h1>
-    <p>It is a pretty cool demo imo.</p>
 
     <div>
         <h4>Slabs</h4>
+        <p>
+            emmalloc allocates contiguous "slabs" of memory via <code>sbrk</code>. These slabs are broken down into <code>Region</code>s, which may be either used or free. These slabs are also prefixed with a <code>RootRegion</code>, which tracks the overall size of the slab and forms a singly-linked list with other slabs of memory.
+        </p>
+        <p>
+            Because emmalloc assumes that it is not the only user of <code>sbrk</code>, consecutive slab allocations may not be contiguous. If a new slab is contiguous with the last, emmalloc will grow the current slab instead. Otherwise, the new slab will be added to the linked list of slabs instead.
+        </p>
         <div id="slabs"></div>
     </div>
 

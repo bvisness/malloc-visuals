@@ -1,8 +1,24 @@
+:root {
+  --region-top-height: 1.5rem;
+}
+
 .region {
   display: flex;
-  border-width: 1px;
-  border-style: solid;
-  margin-top: 2rem;
+  flex-direction: column;
+  position: relative;
+  margin-top: 1rem;
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-right-width: 1px;
+  border-right-style: solid;
+}
+
+.region-fields {
+  display: flex;
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
 }
 
 .region:not(:first-child) {
