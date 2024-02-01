@@ -234,6 +234,12 @@ function draw() {
     console.groupEnd();
 }
 
+function mallocAndDraw(size) {
+    const addr = malloc(size);
+    draw();
+    console.log(`malloced ${size} bytes at ${hex(addr)}`);
+}
+
 function Field(name, value, size) {
     const e = E("div", ["field", "flex", "flex-column", "tc"], [
         E("div", ["flex-grow-1", "pa1", "flex", "flex-column", "justify-center", "code", "f6"], [
