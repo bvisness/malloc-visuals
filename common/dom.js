@@ -4,7 +4,7 @@
 
 /**
  * A slightly relaxed Node type for my DOM utilities.
- * @typedef {(Node|string)} BNode
+ * @typedef {(Node|string|null)} BNode
  *
  * One or more BNodes.
  * @typedef {(BNode|BNode[])} BNodes
@@ -30,10 +30,14 @@ function N(v) {
 function addChildren(n, children) {
   if (Array.isArray(children)) {
     for (const child of children) {
-      n.appendChild(N(child));
+      if (child) {
+        n.appendChild(N(child));
+      }
     }
   } else {
-    n.appendChild(N(children));
+    if (children) {
+      n.appendChild(N(children));
+    }
   }
 }
 

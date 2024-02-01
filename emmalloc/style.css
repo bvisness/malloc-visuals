@@ -1,5 +1,15 @@
 :root {
   --region-top-height: 1.5rem;
+  --color-1: #D64CF1;
+  --color-2: #00B3F5;
+}
+
+.c1 {
+  color: var(--color-1);
+}
+
+.c2 {
+  color: var(--color-2);
 }
 
 .region {
@@ -28,5 +38,10 @@
 .field:not(:first-child) {
   border-left-style: solid;
   border-left-width: 1px;
-  border-left-color: hsla(0,0%,100%,.6);
+  border-left-color: hsla(0, 0%, 100%, .6);
+}
+
+.size-bar {
+  background-color: var(--color-1);
+  height: 0.25rem;
 }

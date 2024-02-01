@@ -62,7 +62,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-
 #ifdef __EMSCRIPTEN_TRACING__
 #include <emscripten/trace.h>
 #endif
@@ -130,7 +129,7 @@ typedef struct Region {
 // list of all RootRegions in the program, starting with `listOfAllRegions`
 // below.
 typedef struct RootRegion {
-  uint32_t size;
+  uint32_t size; // TODO: This should be size_t. Report this as a bug or PR it.
   struct RootRegion *next;
   uint8_t *endPtr;
 } RootRegion;

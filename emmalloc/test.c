@@ -22,6 +22,12 @@ EMSCRIPTEN_KEEPALIVE void *_malloc(size_t size) {
   return emmalloc_malloc(size);
 }
 EMSCRIPTEN_KEEPALIVE void _free(void *ptr) { emmalloc_free(ptr); }
+EMSCRIPTEN_KEEPALIVE bool _claim_more_memory(size_t numBytes) {
+  return claim_more_memory(numBytes);
+}
+EMSCRIPTEN_KEEPALIVE int _compute_free_list_bucket(size_t allocSize) {
+  return compute_free_list_bucket(allocSize);
+}
 
 #define STRUCT(s)                                                              \
   EMSCRIPTEN_KEEPALIVE size_t sizeof_##s() { return sizeof(s); }

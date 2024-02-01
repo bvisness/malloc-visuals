@@ -1,15 +1,18 @@
 const BYTE_WIDTH_REM = 1.25;
-const MAX_WIDTH_REM = 20;
+const MAX_WIDTH_REM = 30;
 const slabs = document.querySelector("#slabs");
 
 // All the constants and functions below are defined in `init`.
 addOnPostRun(init);
 
-let MALLOC_ALIGNMENT;
-let SIZEOF_PTR;
 const NUM_FREE_BUCKETS = 64; // not worth fetching from C++ because emmalloc is built around this number
 const FREE_REGION_FLAG = 0x1;
+let MALLOC_ALIGNMENT;
+let SIZEOF_PTR;
+let REGION_HEADER_SIZE;
 
+let claim_more_memory;
+let compute_free_list_bucket;
 let free;
 let malloc;
 let pListOfAllRegions;
@@ -32,6 +35,12 @@ class RegionImpl {
 
     get free() {
         return !!(this.ceilingSize & FREE_REGION_FLAG);
+    }
+}
+
+class RootRegionImpl {
+    get ceilingSize() {
+        return load(HEAPU8, this.__addr + this.size - SIZEOF_PTR, SIZEOF_PTR);
     }
 }
 
@@ -105,7 +114,10 @@ const bucketSizes = [
 function init() {
     MALLOC_ALIGNMENT = Module.ccall("_MALLOC_ALIGNMENT", "number");
     SIZEOF_PTR = Module.ccall("_sizeof_ptr", "number");
+    REGION_HEADER_SIZE = 2 * SIZEOF_PTR;
 
+    claim_more_memory = Module.cwrap("_claim_more_memory", "bool", ["number"]);
+    compute_free_list_bucket = Module.cwrap("_compute_free_list_bucket", "number", ["number"]);
     free = Module.cwrap("_free", null, ["number"]);
     malloc = Module.cwrap("_malloc", "number", ["number"]);
     pListOfAllRegions = Module.cwrap("pListOfAllRegions", "number");
@@ -122,7 +134,7 @@ function init() {
         "size",
         "next",
         "endPtr",
-    ]);
+    ], RootRegionImpl);
 
     draw();
 }
@@ -143,29 +155,36 @@ function draw() {
                 slabs.appendChild(slab);
 
                 console.log("RootRegion", root);
+                const rootPaddingBytes = root.size - Region.size; // WEIRDNESS but it is correct
                 const rootDiv = E("div", ["region", "root"], [
                     E("div", ["code", "f7", "white-60", "flex", "flex-column", "justify-end", "pl1", "pb1"], [
                         hex(root.__addr),
                     ]),
                     E("div", ["region-fields"], [
-                        // TODO: tooltip to indicate that size is unused
-                        // (and probably dim it)
-                        Field("size", root.size, RootRegion.sizeof("size")),
-                        Field("next", root.next, RootRegion.sizeof("next")),
-                        Field("endPtr", root.endPtr, RootRegion.sizeof("endPtr")),
+                        Field("size", hex(root.size), RootRegion.sizeof("size")),
+                        Field("next", hex(root.next), RootRegion.sizeof("next")),
+                        Field("endPtr", hex(root.endPtr), RootRegion.sizeof("endPtr")),
+                        rootPaddingBytes && Padding(rootPaddingBytes),
+                        Field("size | free", hex(root.ceilingSize), RootRegion.sizeof("size")),
                     ]),
                     E("div", ["ph1", "tc", "flex-grow-1"], [
-                        E("span", ["f7"], "RootRegion"),
+                        E("span", ["f7"], "RootRegion (sentinel)"),
                     ]),
                 ]);
                 slab.appendChild(rootDiv);
 
-                // why we add sizeof(Region) is not entirely clear to me...but
-                // sizeof(RootRegion) < sizeof(Region) so whatever
-                let regionAddr = root.__addr + Region.size;
+                let regionAddr = root.__addr + root.size;
                 while (regionAddr !== root.endPtr) {
                     const region = Region.load(HEAPU8, regionAddr);
-                    console.log(`Region (${region.used ? "used" : "free"})`, region);
+
+                    const isSentinel = region.__addr + region.size === root.endPtr;
+                    const descriptor = isSentinel ? "sentinel" : (region.used ? "used" : "free");
+
+                    console.log(`Region (${descriptor})`, region);
+
+                    if (region.__addr > root.endPtr) {
+                        throw new Error(`inconsistent state: Region at addr ${region.__addr} is past RootRegion.endPtr = ${root.endPtr}`);
+                    }
 
                     // TODO: render "breaks" in the payload/padding if wider than the max allowed
                     const regionDiv = E("div", ["region"], [
@@ -174,10 +193,10 @@ function draw() {
                         ]),
                     ]);
                     const regionFields = E("div", ["region-fields"], [
-                        Field("size", region.size, Region.sizeof("size")),
+                        Field("size", hex(region.size), Region.sizeof("size")),
                     ]);
                     if (region.used) {
-                        const payloadBytes = region.size - 2 * SIZEOF_PTR;
+                        const payloadBytes = region.size - REGION_HEADER_SIZE;
                         const payload = E("div", ["pa1", "f6", "bl", "flex", "flex-column", "justify-center", "tc"], [
                             E("span", ["code"], "payload"),
                             E("span", ["f7", "white-60", "mt1"], `${hex(payloadBytes)} bytes`),
@@ -185,21 +204,40 @@ function draw() {
                         payload.style.width = width(payloadBytes);
                         regionFields.appendChild(payload);
                     } else {
-                        regionFields.appendChild(Field("prev", region.prev, Region.sizeof("prev")));
-                        regionFields.appendChild(Field("next", region.next, Region.sizeof("next")));
+                        regionFields.appendChild(Field("prev", hex(region.prev), Region.sizeof("prev")));
+                        regionFields.appendChild(Field("next", hex(region.next), Region.sizeof("next")));
 
                         const paddingBytes = region.size - Region.size;
                         if (paddingBytes) {
-                            const padding = E("div", ["bl", "b--white-60"]);
-                            padding.style.width = width(paddingBytes);
-                            regionFields.appendChild(padding);
+                            regionFields.appendChild(Padding(paddingBytes));
                         }
                     }
-                    regionFields.appendChild(Field("size | free", region.ceilingSize, Region.sizeof("_at_the_end_of_this_struct_size")));
+                    regionFields.appendChild(Field(
+                        [
+                            "size | ",
+                            E("span", region.free && ["c2", "b"], "free"),
+                        ],
+                        E("span", [], region.used ? hex(region.ceilingSize) : [
+                            hex(region.ceilingSize).slice(0, -1),
+                            E("span", ["c2"], hex(region.ceilingSize).slice(-1)),
+                        ]),
+                        Region.sizeof("_at_the_end_of_this_struct_size"),
+                    ));
                     regionDiv.appendChild(regionFields);
 
+                    const sizeBar = E("div", ["size-bar"]);
+                    sizeBar.style.marginLeft = width(Region.sizeof("size"));
+                    sizeBar.style.marginRight = `calc(${width(Region.sizeof("_at_the_end_of_this_struct_size"))} - 1px)`;
+                    regionDiv.appendChild(sizeBar);
+
                     regionDiv.appendChild(E("div", ["ph1", "tc", "flex-grow-1"], [
-                        E("span", ["f7"], `Region (${region.used ? "used" : "free"})`),
+                        E("span", ["f7"], [
+                            "Region (",
+                            E("span", ["c1", "b"], `${hex(region.size - REGION_HEADER_SIZE)} bytes`),
+                            ", ",
+                            E("span", region.free && ["c2", "b"], descriptor),
+                            ")",
+                        ]),
                     ]));
 
                     slab.appendChild(regionDiv);
@@ -217,14 +255,14 @@ function draw() {
     {
         const buckets = Region.loadArray(HEAPU8, pFreeRegionBuckets(), NUM_FREE_BUCKETS);
         for (const [i, bucket] of buckets.entries()) {
-            console.group(`Bucket ${i} (${bucketSizes[i][0]}-${bucketSizes[i][1]} bytes)`);
+            console.group(`Bucket ${i} (${bucketSizes[i][0] + REGION_HEADER_SIZE}-${bucketSizes[i][1]+ REGION_HEADER_SIZE} bytes, ${bucketSizes[i][0]}-${bucketSizes[i][1]} byte allocations)`);
             {
                 console.log(bucket);
                 const startAddr = bucket.__addr;
                 let addr = bucket.next;
                 while (addr !== startAddr) {
                     const freeRegion = Region.load(HEAPU8, addr);
-                    console.log(freeRegion.used, freeRegion.free, freeRegion.ceilingSize, freeRegion);
+                    console.log(freeRegion, freeRegion.ceilingSize);
                     addr = freeRegion.next;
                 }
             }
@@ -243,12 +281,18 @@ function mallocAndDraw(size) {
 function Field(name, value, size) {
     const e = E("div", ["field", "flex", "flex-column", "tc"], [
         E("div", ["flex-grow-1", "pa1", "flex", "flex-column", "justify-center", "code", "f6"], [
-            hex(value),
+            value,
         ]),
         E("div", ["bt", "b--white-60", "white-60", "pa1", "f7"], name),
     ]);
     e.style.width = width(size);
     return e;
+}
+
+function Padding(bytes) {
+    const res = E("div", ["bl", "b--white-60"]);
+    res.style.width = width(bytes);
+    return res;
 }
 
 function hex(n) {
