@@ -5,4 +5,5 @@ call emcc emmalloc\test.c -sMALLOC=none -sEXPORTED_RUNTIME_METHODS=ccall,cwrap -
 copy emmalloc\*.html build\emmalloc\
 copy emmalloc\*.js build\emmalloc\
 copy emmalloc\*.css build\emmalloc\
+copy emmalloc\*.svg build\emmalloc\
 copy common\* build\emmalloc\

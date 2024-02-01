@@ -19,6 +19,8 @@
 
         h1, h2, h3, h4, h5, h6 {
             font-family: Metropolis;
+            margin-top: 1em;
+            margin-bottom: 1em;
         }
 
         h1 {
@@ -59,6 +61,7 @@
     <button onclick="mallocAndDraw(8)">malloc(8)</button>
     <button onclick="mallocAndDraw(64)">malloc(64)</button>
     <button onclick="mallocAndDraw(1024)">malloc(1024)</button>
+    <button onclick="sbrkAndDraw(65536)">sbrk(64KiB)</button>
 
     <div>
         <h4>Slabs</h4>

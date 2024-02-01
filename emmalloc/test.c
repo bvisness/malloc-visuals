@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #define EMMALLOC_VERBOSE 1
 #define EMMALLOC_NO_STD_EXPORTS 1
 #include "emmalloc.c"
@@ -28,6 +30,7 @@ EMSCRIPTEN_KEEPALIVE bool _claim_more_memory(size_t numBytes) {
 EMSCRIPTEN_KEEPALIVE int _compute_free_list_bucket(size_t allocSize) {
   return compute_free_list_bucket(allocSize);
 }
+EMSCRIPTEN_KEEPALIVE void *_sbrk(intptr_t increment) { return sbrk(increment); }
 
 #define STRUCT(s)                                                              \
   EMSCRIPTEN_KEEPALIVE size_t sizeof_##s() { return sizeof(s); }
@@ -38,12 +41,8 @@ EMSCRIPTEN_KEEPALIVE int _compute_free_list_bucket(size_t allocSize) {
   EMSCRIPTEN_KEEPALIVE size_t offsetof_##s##_##f() { return offsetof(s, f); }
 
 STRUCT(Region)
-FIELD(Region, size)
-FIELD(Region, prev)
-FIELD(Region, next)
-FIELD(Region, _at_the_end_of_this_struct_size)
+FIELD(Region, size) FIELD(Region, prev) FIELD(Region, next)
+    FIELD(Region, _at_the_end_of_this_struct_size)
 
-STRUCT(RootRegion)
-FIELD(RootRegion, size)
-FIELD(RootRegion, next)
-FIELD(RootRegion, endPtr)
+        STRUCT(RootRegion) FIELD(RootRegion, size) FIELD(RootRegion, next)
+            FIELD(RootRegion, endPtr)

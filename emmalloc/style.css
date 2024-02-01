@@ -12,6 +12,10 @@
   color: var(--color-2);
 }
 
+.bg--allocated {
+  background-color: var(--bg--allocated);
+}
+
 .region {
   display: flex;
   flex-direction: column;
@@ -41,7 +45,38 @@
   border-left-color: hsla(0, 0%, 100%, .6);
 }
 
+.payload {
+  --bg: #073072;
+  --bg-bright: #063F96;
+  background-color: var(--bg);
+  cursor: pointer;
+}
+
+.payload:hover {
+  background-color: var(--bg-bright);
+}
+
+.payload:active {
+  background-color: var(--bg);
+}
+
+.payload:hover .payload-allocated {
+  display: none;
+}
+
+.payload:not(:hover) .payload-free {
+  display: none;
+}
+
 .size-bar {
   background-color: var(--color-1);
+}
+
+.h--bar {
   height: 0.25rem;
+}
+
+.striped {
+  background: url("diagonalstripes.svg");
+  background-size: 8px;
 }
