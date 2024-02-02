@@ -79,4 +79,5 @@
 .striped {
   background: url("diagonalstripes.svg");
   background-size: 8px;
+  background-clip: content-box;
 }
