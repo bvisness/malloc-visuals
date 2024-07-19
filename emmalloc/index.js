@@ -141,6 +141,8 @@ function init() {
     draw();
 }
 
+const llmv = new LLMV();
+
 function draw() {
     slabs.innerHTML = "";
 
@@ -152,30 +154,32 @@ function draw() {
         while (pRoot) {
             const root = RootRegion.load(HEAPU8, pRoot);
             console.group(`Slab ${i}`);
-            slabs.appendChild(E("h5", [], `Slab ${i}`));
             {
-                const slab = E("div", ["slab", "flex", "flex-wrap"]);
-                slabs.appendChild(slab);
+                slabs.appendChild(E("h5", [], `Slab ${i}`));
+
+                /** @type {Tape} */
+                const slab = {
+                    regions: [],
+                };
 
                 console.log("RootRegion", root);
-                const rootPaddingBytes = root.size - Region.size; // WEIRDNESS but it is correct
-                const rootDiv = E("div", ["region", "root"], [
-                    E("div", ["code", "f7", "white-60", "flex", "flex-column", "justify-end", "pl1", "pb1"], [
-                        hex(root.__addr),
-                    ]),
-                    E("div", ["region-fields"], [
-                        Field("size", hex(root.size), RootRegion.sizeof("size")),
-                        Field("next", hex(root.next), RootRegion.sizeof("next")),
-                        Field("endPtr", hex(root.endPtr), RootRegion.sizeof("endPtr")),
-                        rootPaddingBytes && Padding(rootPaddingBytes),
-                        Field("size | free", hex(root.ceilingSize), RootRegion.sizeof("size")),
-                    ]),
-                    E("div", ["h--bar"]),
-                    E("div", ["ph1", "tc", "flex-grow-1"], [
-                        E("span", ["f7"], "RootRegion (sentinel)"),
-                    ]),
-                ]);
-                slab.appendChild(rootDiv);
+                // const rootPaddingBytes = root.size - Region.size; // WEIRDNESS but it is correct
+                slab.regions.push({
+                    addr: root.__addr,
+                    size: root.size,
+                    fields: [
+                        structField(root, "size"),
+                        structField(root, "next"),
+                        structField(root, "endPtr"),
+                        {
+                            addr: root.__addr + root.size - RootRegion.sizeof("size"), // weird but correct
+                            size: RootRegion.sizeof("size"),
+                            name: "size | free",
+                            content: hex(root.ceilingSize),
+                        },
+                    ],
+                    description: "RootRegion (sentinel)",
+                });
 
                 let regionAddr = root.__addr + root.size;
                 while (regionAddr !== root.endPtr) {
@@ -191,76 +195,75 @@ function draw() {
                     }
 
                     // TODO: render "breaks" in the payload/padding if wider than the max allowed
-                    const regionDiv = E("div", ["region"], [
-                        E("div", ["code", "f7", "white-60", "flex", "flex-column", "justify-end", "pl1", "pb1"], [
-                            hex(region.__addr),
-                        ]),
-                    ]);
-                    const regionFields = E("div", ["region-fields"], [
-                        Field("size", hex(region.size), Region.sizeof("size")),
-                    ]);
+                    /** @type {Region} */
+                    const r = {
+                        addr: region.__addr,
+                        size: region.size,
+                        fields: [
+                            structField(region, "size"),
+                            // more to come
+                        ],
+                        description: "",
+                    };
                     if (isSentinel) {
-                        regionFields.appendChild(Padding(region.size - REGION_HEADER_SIZE));
+                        // nothing else
                     } else if (region.used) {
                         const payloadBytes = region.size - REGION_HEADER_SIZE;
-                        const payload = E("div", ["payload", "pa1", "f6", "bl", "flex", "flex-column", "justify-center", "tc"], [
+                        const payload = E("div", ["payload", "flex-grow-1", "pa1", "f6", "flex", "flex-column", "justify-center", "tc"], [
                             E("span", ["payload-allocated", "code"], "allocated"),
                             E("span", ["payload-free", "code"], "(click to free)"),
                             E("span", ["f7", "white-60", "mt1"], `${hex(payloadBytes)} bytes`),
                         ]);
-                        payload.style.width = width(payloadBytes);
                         payload.addEventListener("click", () => {
                             free(region.__addr + Region.sizeof("size"));
                             draw();
                         });
-                        regionFields.appendChild(payload);
+                        r.fields.push({
+                            addr: r.addr + Region.sizeof("size"),
+                            size: payloadBytes,
+                            content: payload,
+                        });
                     } else {
-                        regionFields.appendChild(Field("prev", hex(region.prev), Region.sizeof("prev")));
-                        regionFields.appendChild(Field("next", hex(region.next), Region.sizeof("next")));
-
-                        const paddingBytes = region.size - Region.size;
-                        if (paddingBytes) {
-                            regionFields.appendChild(Padding(paddingBytes));
-                        }
+                        r.fields.push(structField(region, "prev"));
+                        r.fields.push(structField(region, "next"));
                     }
-                    regionFields.appendChild(Field(
-                        [
-                            "size | ",
-                            E("span", region.free && ["c2", "b"], "free"),
-                        ],
-                        E("span", [], region.used ? hex(region.ceilingSize) : [
+                    r.fields.push({
+                        addr: region.__addr + region.size - Region.sizeof("_at_the_end_of_this_struct_size"),
+                        size: Region.sizeof("_at_the_end_of_this_struct_size"),
+                        content: E("div", ["pa1"], region.used ? hex(region.ceilingSize) : [
                             hex(region.ceilingSize).slice(0, -1),
                             E("span", ["c2"], hex(region.ceilingSize).slice(-1)),
                         ]),
-                        Region.sizeof("_at_the_end_of_this_struct_size"),
-                    ));
-                    regionDiv.appendChild(regionFields);
+                        name: [
+                            "size | ",
+                            E("span", region.free && ["c2", "b"], "free"),
+                        ],
+                    });
 
-                    if (isSentinel) {
-                        regionDiv.appendChild(E("div", ["h--bar"]));
-                    } else {
-                        const sizeBar = E("div", ["size-bar", "h--bar"]);
-                        sizeBar.style.marginLeft = width(Region.sizeof("size"));
-                        sizeBar.style.marginRight = `calc(${width(Region.sizeof("_at_the_end_of_this_struct_size"))} - 1px)`;
-                        regionDiv.appendChild(sizeBar);
+                    if (!isSentinel) {
+                        r.bars = [{
+                            addr: region.__addr + Region.sizeof("size"),
+                            size: region.size - Region.sizeof("size") - Region.sizeof("_at_the_end_of_this_struct_size"),
+                            color: "var(--color-1)",
+                        }];
                     }
 
                     const descriptorEl = isSentinel ? "sentinel" : E("span", region.free && ["c2", "b"], descriptor);
-                    regionDiv.appendChild(E("div", ["ph1", "tc", "flex-grow-1"], [
-                        E("span", ["f7"], [
-                            "Region (",
-                            !isSentinel && F([
-                                E("span", ["c1", "b"], `${hex(region.size - REGION_HEADER_SIZE)} bytes`),
-                                ", ",
-                            ]),
-                            descriptorEl,
-                            ")",
+                    r.description = [
+                        "Region (",
+                        !isSentinel && F([
+                            E("span", ["c1", "b"], `${hex(region.size - REGION_HEADER_SIZE)} bytes`),
+                            ", ",
                         ]),
-                    ]));
+                        descriptorEl,
+                        ")",
+                    ];
 
-                    slab.appendChild(regionDiv);
+                    slab.regions.push(r);
                     regionAddr += region.size;
                 }
+
+                slabs.appendChild(llmv.renderTape(slab));
             }
             console.groupEnd();
             pRoot = root.next;
@@ -301,29 +304,24 @@ function sbrkAndDraw(size) {
     draw();
 }
 
-function Field(name, value, size) {
-    const e = E("div", ["field", "flex", "flex-column", "tc"], [
-        E("div", ["flex-grow-1", "pa1", "flex", "flex-column", "justify-center", "code", "f6"], [
-            value,
-        ]),
-        E("div", ["bt", "b--white-60", "white-60", "pa1", "f7"], name),
-    ]);
-    e.style.width = width(size);
-    return e;
-}
-
-function Padding(bytes) {
-    const res = E("div", ["bl", "b--white-60", "striped"]);
-    res.style.width = width(bytes);
-    return res;
-}
-
 function hex(n) {
     return `0x${n.toString(16)}`;
 }
 
-function width(bytes) {
-    return `${Math.min(bytes * BYTE_WIDTH_REM, MAX_WIDTH_REM)}rem`;
+/**
+ * @param {*} s 
+ * @param {string} name 
+ * @param {BNode} [content]
+ * @param {BNode} [displayName]
+ * @returns {Field}
+ */
+function structField(s, name, content = null, displayName = null) {
+    return {
+        addr: s.__addr + s.__def.offsetof(name),
+        size: s.__def.sizeof(name),
+        name: displayName ?? name,
+        content: content ?? hex(s[name]),
+    };
 }
 
 function test() {

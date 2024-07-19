@@ -5,7 +5,9 @@
 /**
  * A slightly relaxed Node type for my DOM utilities.
  * @typedef {(Node|string|null)} BNode
- *
+ */
+
+/**
  * One or more BNodes.
  * @typedef {(BNode|BNode[])} BNodes
  */

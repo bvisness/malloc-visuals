@@ -24,6 +24,7 @@ class StructDef {
     load(mem, addr) {
         const res = this.klass ? new this.klass() : {};
         res.__addr = addr;
+        res.__def = this;
         for (const field of this.fields) {
             // Little endian is assumed
             let num = 0;
