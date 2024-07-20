@@ -1,3 +1,5 @@
+import { LLMV } from "./llmv.js";
+
 const BYTE_WIDTH_REM = 1.25;
 const MAX_WIDTH_REM = 30;
 const slabs = document.querySelector("#slabs");
@@ -354,13 +356,13 @@ function draw() {
     console.groupEnd();
 }
 
-function mallocAndDraw(size) {
+window.mallocAndDraw = function mallocAndDraw(size) {
     const addr = malloc(size);
     draw();
     console.log(`malloced ${size} bytes at ${hex(addr)}`);
 }
 
-function sbrkAndDraw(size) {
+window.sbrkAndDraw = function sbrkAndDraw(size) {
     sbrk(size);
     draw();
 }
