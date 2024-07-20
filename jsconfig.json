@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "ES2015",
+            "DOM",
+        ],
+        "types": [], // disable Node types
+        "checkJs": true,
+    },
+    "exclude": [
+        "build"
+    ]
+}

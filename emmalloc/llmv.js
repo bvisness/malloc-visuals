@@ -13,7 +13,7 @@
  * @property {number} size
  * @property {Field[]} fields
  * @property {Bar[]} [bars]
- * @property {BNodes} description
+ * @property {BNodes} [description]
  */
 
 /**
@@ -84,8 +84,9 @@ class LLMV {
                         if (Array.isArray(subfield.content)) {
                             throw new Error("can't have sub-sub-fields");
                         }
-                        elSubfields.appendChild(FieldContent(subfield.content));
+                        elSubfields.appendChild(FieldContent(subfield.content, "subfield"));
                     }
+                    elField.appendChild(elSubfields);
                 } else {
                     elField.appendChild(FieldContent(field.content));
                 }
@@ -142,21 +143,21 @@ class LLMV {
         const res = [];
 
         let lastAddr = baseAddr;
-        for (const thing of fields) {
-            if (lastAddr < thing.addr) {
+        for (const field of fields) {
+            if (lastAddr < field.addr) {
                 res.push({
                     addr: lastAddr,
-                    size: thing.addr - lastAddr,
+                    size: field.addr - lastAddr,
                     content: Padding(),
                 });
             }
-            res.push(thing);
-            lastAddr = thing.addr + thing.size;
+            res.push(field);
+            lastAddr = field.addr + field.size;
         }
-        if (lastAddr < size) {
+        if (lastAddr < baseAddr + size) {
             res.push({
                 addr: lastAddr,
-                size: size - lastAddr,
+                size: baseAddr + size - lastAddr,
                 content: Padding(),
             });
         }
@@ -174,11 +175,11 @@ function Padding() {
  * @param {BNode} content 
  * @returns 
  */
-function FieldContent(content) {
+function FieldContent(content, klass = null) {
     if (typeof content === "string") {
-        return E("div", ["flex-grow-1", "pa1", "flex", "flex-column", "code", "f6"], [
+        return E("div", [klass, "flex-grow-1", "pa1", "flex", "flex-column", "code", "f6"], [
             content,
         ]);
     }
-    return E("div", ["flex-grow-1", "flex", "flex-column", "code", "f6"], content);
+    return E("div", [klass, "flex-grow-1", "flex", "flex-column", "code", "f6"], content);
 }

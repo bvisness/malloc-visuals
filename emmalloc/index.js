@@ -146,6 +146,67 @@ const llmv = new LLMV();
 function draw() {
     slabs.innerHTML = "";
 
+    {
+        slabs.appendChild(E("h5", [], `ASCII Strings`));
+
+        const str = "Hello, ASCII!";
+        const addr = 1024;
+        const fields = [];
+        for (let i = 0; i < str.length; i++) {
+            fields.push({
+                addr: addr + i,
+                size: 1,
+                content: byte(str.charCodeAt(i)),
+                name: str.charAt(i),
+            });
+        }
+        slabs.appendChild(llmv.renderTape({
+            regions: [{
+                addr: addr,
+                size: str.length,
+                fields: fields,
+                description: `"${str}"`,
+            }],
+        }))
+    }
+
+    {
+        slabs.appendChild(E("h5", [], `UTF-8 Strings`));
+
+        const str = "👨🏻‍⚕️ gimme €5000";
+        const encoder = new TextEncoder();
+        const addr = 2048;
+        const fields = [];
+        let byteLen = 0;
+        for (const c of str) {
+            const startAddr = addr + byteLen;
+            const bytes = encoder.encode(c);
+            const byteFields = [];
+            for (let i = 0; i < bytes.length; i++) {
+                byteFields.push({
+                    addr: startAddr + i,
+                    size: 1,
+                    content: byte(bytes[i]),
+                });
+                byteLen++;
+            }
+            fields.push({
+                addr: startAddr,
+                size: byteFields.length,
+                content: byteFields,
+                name: c,
+            });
+        }
+        slabs.appendChild(llmv.renderTape({
+            regions: [{
+                addr: addr,
+                size: str.length,
+                fields: fields,
+                description: `"${str}"`,
+            }],
+        }))
+    }
+
     console.group("root regions");
     {
         const ppRoot = pListOfAllRegions();
@@ -304,8 +365,12 @@ function sbrkAndDraw(size) {
     draw();
 }
 
-function hex(n) {
-    return `0x${n.toString(16)}`;
+function byte(n) {
+    return hex(n, false);
+}
+
+function hex(n, prefix = true) {
+    return `${prefix ? "0x" : ""}${n.toString(16)}`;
 }
 
 /**

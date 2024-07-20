@@ -20,7 +20,6 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  margin-top: 1rem;
   border-left-width: 1px;
   border-left-style: solid;
   border-right-width: 1px;
@@ -39,7 +38,8 @@
   /* margin-left: 1px; */
 }
 
-.field:not(:first-child) {
+.field:not(:first-child),
+.subfield:not(:first-child) {
   border-left-style: solid;
   border-left-width: 1px;
   border-left-color: hsla(0, 0%, 100%, .6);
